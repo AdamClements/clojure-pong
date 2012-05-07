@@ -1,0 +1,14 @@
+# Pong
+
+An attempt at writing an interactive game using clojure. Pong was just the first thing that came to mind.
+
+## Usage
+
+First ask yourself whether you really want to. Otherwise run the stuff in core.clj. Main method will follow
+eventually.
+
+## License
+
+Copyright (C) 2012
+
+GPL License
