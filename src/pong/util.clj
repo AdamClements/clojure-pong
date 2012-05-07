@@ -1,5 +1,4 @@
-(ns Pong.util)
-
+(ns pong.util)
 
 (defn restrict-range
   "Takes a min and a max (default 0.0 and 1.0) in any order, 

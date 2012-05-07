@@ -1,5 +1,5 @@
-(ns Pong.test.core
-  (:use [Pong.core])
+(ns pong.test.core
+  (:use [pong.core])
   (:use [clojure.test]))
 
 (deftest replace-me ;; FIXME: write
