@@ -3,45 +3,55 @@
         [pong.util]
         [pong.state]))
 
-(def colour  {:player1    [ 64 255  64]
-              :player2    [255 128 128]
+(def colour  {:green-plyr [ 64 255  64]
+              :red-plyr   [255 128 128]
               :ball       [  0 128 256]
               :background [  0   0   0]
               :grid       [  0  64   0]})
 
 (defn tronify [colour-key]
-  (stroke-weight 2)
+  (stroke-weight 3)
   (stroke-join :round)
-  (apply fill   (conj (colour-key colour) 192))
+  (apply fill   (conj (colour-key colour) 128))
   (apply stroke       (colour-key colour)))
 
-(defn world-to-win
-  "Can only be called within a quil applet"
-  [[x y]]
-  (let [w (width) h (height)]
-    (vector (* w (+ 0.05 (* x 0.9))) (* h (+ 0.05 (* y 0.9))))))
+(defn to-px 
+  "Converts world space to pixel window space when run within a quil
+   draw, explodes otherwise. Arguments in the form :x 1.0 :y 1.0 :w 0.5
+   can take any number of :x :y :w :h dimensions and will return them
+   in the same order but untagged"
+  [& args]
+  (map (fn [[type v]]
+         (let [scale   (if (type #{:x :w}) (width) (height))
+               padding (if (type #{:y :x})   0.05     0.00)]
+           (* scale (+ padding (* v 0.9))))) 
+       (partition 2 args)))
 
 (defn draw-paddle
   "Draws a player's paddle"
-  [player vertical-position]
-  (tronify player)
-  (let [[x y] 
-        (world-to-win 
-          (vector (player @world), vertical-position))]
-    (rect-mode :center)
-    (rect x y 70 10)))
+  [player]
+  (let [{[x y]       :position
+         [w h]       :size
+         plyr-colour :colour   } player
+               [xt  yt   wt   ht] 
+        (to-px :x x :y y :w w :h h)]
+    (tronify plyr-colour)
+    (ellipse-mode :center)
+    (ellipse xt yt wt ht)))
 
-(defn draw-ball  [ball]
-  (let [{pos :position} ball
-        [x y] (world-to-win pos)]
+(defn draw-ball  
+  [ball]
+  (let [{[x y] :position
+         rad   :radius    } ball
+        [xt yt st] (to-px :x x :y y :w rad)]
     (tronify :ball)
     (ellipse-mode :center)
-    (ellipse x y 20 20)))
+    (ellipse xt yt st st)))
 
 (defn draw-background-grid []
-  (let [[xl yt] (world-to-win '(0.0, 0.0))  ;; Top left co-ords
-        [xr yb] (world-to-win '(1.0, 1.0))  ;; Bottom right co-ords
-        [xc yc] (world-to-win '(0.5, 0.5))  ;; Centre co-ords
+  (let [[xl yt] (to-px :x 0.0, :y 0.0)  ;; Top left co-ords
+        [xr yb] (to-px :x 1.0, :y 1.0)  ;; Bottom right co-ords
+        [xc yc] (to-px :x 0.5, :y 0.5)  ;; Centre co-ords
         centre-diam (/ (- xc xl) 2) ]
     (tronify :grid)
     (rect-mode :corners)
@@ -61,11 +71,11 @@
   (frame-rate 30))                
 
 (defn draw []
-  (apply background (:background colour))
+  (background 0)
   (draw-background-grid)
-  (draw-paddle :player1 1.0)
-  (draw-paddle :player2 0.0)
-  (draw-ball (:ball @world)))
+  (draw-paddle @player1)
+  (draw-paddle @player2)
+  (draw-ball   @ball))
 
 
 (defn define-playing-field

@@ -1,61 +1,56 @@
 (ns pong.core
-  (:require [clojure.contrib.math :as math])
   (:use [pong.util]
         [pong.draw :only (define-playing-field)]
-        [pong.state :only (world)]))
+        [pong.state]))
 
 
 (defn start-thinking
   [fn delay]
   (future (loop [] (fn) (Thread/sleep delay) (recur))))
 
-(def ai-player-velocity (atom 0.0))
-
 (defn ai-player
   "An AI player that moves at random but maintaining velocity and with a 
    slight bias towards the centre"
   [player]
-  (swap! ai-player-velocity random-move)
-  (let [cur-pos (player @world)
-        new-pos (restrict-range (+ @ai-player-velocity cur-pos (* 0.15 (- 0.5 cur-pos))))]
-    (swap! world assoc player new-pos)))
+  (let [{[xp yp] :position
+         [xv yv] :velocity} @player
+        new-vel (vector (random-move xv) yv)
+        new-pos (vector (restrict-range (+ xv xp (* 0.25 (- 0.5 xp)))) yp)]
+    (swap! player assoc :position new-pos :velocity new-vel)))
 
 (defn speed-transform
   "Moves the ball according to its current speed"
-  [ball]
+  [b]
   (let [{[xvel yvel] :velocity
-         [xpos ypos] :position} ball]
-    (assoc ball :position (list (+ xpos xvel) (+ ypos yvel)))))
+         [xpos ypos] :position} b]
+  (assoc b :position [(+ xpos xvel) (+ ypos yvel)])))
 
-(def centre '(0.5 0.5))
+(def centre [0.5 0.5])
 
 (defn bounds-transform
   "Checks for the ball going out of bounds and adjusts accordingly"
-  [ball]
-  (let [{[xvel yvel] :velocity
-         [xpos ypos] :position} ball]
+  [b]
+  (let [{[xpos ypos] :position} b]
     (cond (or (> ypos 1.0) (< ypos 0.0))
-            (assoc ball :position centre :velocity (random-vector 0.05))
-          (> xpos 1.0)
-            (assoc ball :velocity (list (- (math/abs xvel)) yvel))
-          (< xpos 0.0)
-            (assoc ball :velocity (list (math/abs xvel) yvel))
+            (assoc b :position centre :velocity (random-vector 0.05))
           :else
-            ball)))
+            b)));(assoc ball :position [xpos (+ 0.01 ypos)]))));(pong.physics/collide ball {:origin '( 1.0, 0.5)
+                   ;                     :normal '(-1.0, 0.0)
+                   ;                     :
 
 (defn get-new-positions
   "Takes a ball and returns a ball with new positions"
-  [ball]
-  (speed-transform (bounds-transform ball)))
+  [b]
+  (-> b bounds-transform speed-transform))
 
 (defn ball-physics  []
-  (swap! world assoc :ball (get-new-positions (:ball @world))))
+  (swap! ball get-new-positions))
 
 (defn handle-mouse [pos]
-    (swap! world assoc :player1 pos))
+  (let [{[xp yp] :position} @player1]
+    (swap! player1 assoc :position (vector pos yp))))
 
-(defn start-game! []
-  (do 
-    (define-playing-field handle-mouse)
-    (def computer-player (start-thinking #(ai-player :player2) 50))
-    (def ball-actor      (start-thinking ball-physics 50))))
+
+(define-playing-field handle-mouse)
+(def computer-player (start-thinking #(ai-player player2) 50))
+(def ball-actor      (start-thinking ball-physics 50))
